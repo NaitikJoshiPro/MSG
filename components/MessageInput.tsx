@@ -17,14 +17,12 @@ export function MessageInput({ onSend, onTyping }: Props) {
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setValue(e.target.value)
 
-    // Auto resize
     const ta = textareaRef.current
     if (ta) {
       ta.style.height = 'auto'
-      ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
+      ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'
     }
 
-    // Typing indicator
     if (!isTypingRef.current) {
       isTypingRef.current = true
       onTyping(true)
@@ -41,9 +39,10 @@ export function MessageInput({ onSend, onTyping }: Props) {
     if (!content || sending) return
 
     setValue('')
-    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
 
-    // Stop typing indicator
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
     isTypingRef.current = false
     onTyping(false)
@@ -51,7 +50,7 @@ export function MessageInput({ onSend, onTyping }: Props) {
     setSending(true)
     try {
       await onSend(content)
-    } catch (e) {
+    } catch {
       setValue(content)
     } finally {
       setSending(false)
@@ -60,15 +59,19 @@ export function MessageInput({ onSend, onTyping }: Props) {
   }, [value, sending, onSend, onTyping])
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Only auto-send on Enter on non-mobile (physical keyboard)
+    if (e.key === 'Enter' && !e.shiftKey && window.innerWidth >= 768) {
       e.preventDefault()
       handleSend()
     }
   }
 
   return (
-    <div className="px-4 py-4 border-t border-[#111] flex-shrink-0">
-      <div className="flex items-end gap-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl px-4 py-3">
+    <div
+      className="px-3 pt-2 border-t border-[#111] flex-shrink-0 bg-black"
+      style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+    >
+      <div className="flex items-end gap-2 bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl px-3 py-2.5">
         <textarea
           ref={textareaRef}
           value={value}
@@ -76,12 +79,13 @@ export function MessageInput({ onSend, onTyping }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="Message"
           rows={1}
-          className="flex-1 bg-transparent text-white text-[14px] placeholder-[#444] resize-none focus:outline-none leading-relaxed min-h-[22px] max-h-[160px] overflow-y-auto"
+          enterKeyHint="send"
+          className="flex-1 bg-transparent text-white text-[16px] placeholder-[#3a3a3a] resize-none focus:outline-none leading-[1.5] min-h-[26px] max-h-[140px] overflow-y-auto"
         />
         <button
           onClick={handleSend}
           disabled={!value.trim() || sending}
-          className="w-7 h-7 rounded-full bg-white flex items-center justify-center flex-shrink-0 disabled:opacity-20 transition-opacity hover:bg-[#e0e0e0]"
+          className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 disabled:opacity-20 transition-opacity active:scale-95"
           aria-label="Send"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -89,9 +93,6 @@ export function MessageInput({ onSend, onTyping }: Props) {
           </svg>
         </button>
       </div>
-      <p className="text-[11px] text-[#2a2a2a] text-center mt-2">
-        Enter to send · Shift+Enter for new line
-      </p>
     </div>
   )
 }

@@ -41,7 +41,7 @@ export function MessageList({ messages, currentUserId, isTyping, otherUserName }
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
       {messages.map((msg, i) => {
         const isMine = msg.senderId === currentUserId
         const date = new Date(msg.createdAt)
@@ -62,7 +62,7 @@ export function MessageList({ messages, currentUserId, isTyping, otherUserName }
               className={`flex message-enter ${isMine ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words ${
+                className={`max-w-[80%] md:max-w-[65%] px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed break-words ${
                   isMine
                     ? 'bg-white text-black rounded-br-sm'
                     : 'bg-[#141414] text-white rounded-bl-sm'

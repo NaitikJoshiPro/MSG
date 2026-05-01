@@ -66,15 +66,15 @@ export function ConversationSidebar() {
             <button
               key={conv.id}
               onClick={() => router.push(`/chat/${conv.id}`)}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-4 md:py-3 rounded-lg text-left transition-colors active:bg-[#111] ${
                 isActive
                   ? 'bg-[#111]'
                   : 'hover:bg-[#0a0a0a]'
               }`}
             >
               {/* Avatar */}
-              <div className="w-9 h-9 rounded-full bg-[#222] flex items-center justify-center flex-shrink-0">
-                <span className="text-[13px] font-medium text-[#888]">
+              <div className="w-10 h-10 md:w-9 md:h-9 rounded-full bg-[#222] flex items-center justify-center flex-shrink-0">
+                <span className="text-[14px] md:text-[13px] font-medium text-[#888]">
                   {getInitial(other.name)}
                 </span>
               </div>
@@ -82,7 +82,7 @@ export function ConversationSidebar() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[13px] font-medium text-white truncate">
+                  <span className="text-[14px] md:text-[13px] font-medium text-white truncate">
                     {other.name}
                   </span>
                   {lastMsg && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { pusherClient } from '@/lib/pusher-client'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ConversationView({ conversationId, currentUserId, otherUser }: Props) {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -103,9 +105,19 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-[#111] flex-shrink-0">
+      <div className="px-4 py-4 border-b border-[#111] flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center">
+          {/* Back button — mobile only */}
+          <button
+            onClick={() => router.push('/chat')}
+            className="md:hidden flex items-center justify-center w-8 h-8 -ml-1 text-[#666] active:text-white transition-colors"
+            aria-label="Back"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M11 4L6 9l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center flex-shrink-0">
             <span className="text-[12px] font-medium text-[#888]">
               {otherUser.name.charAt(0).toUpperCase()}
             </span>
