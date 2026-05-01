@@ -24,11 +24,13 @@ export async function POST(
   if (!participant) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  await pusherServer.trigger(`conversation-${id}`, 'typing', {
-    userId: session.user.id,
-    name: session.user.name,
-    isTyping: body.isTyping,
-  })
+  if (pusherServer) {
+    await pusherServer.trigger(`conversation-${id}`, 'typing', {
+      userId: session.user.id,
+      name: session.user.name,
+      isTyping: body.isTyping,
+    })
+  }
 
   return NextResponse.json({ ok: true })
 }

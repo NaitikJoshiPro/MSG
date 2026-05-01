@@ -77,8 +77,10 @@ export async function POST(
     data: { updatedAt: new Date() },
   })
 
-  // Trigger Pusher event
-  await pusherServer.trigger(`conversation-${id}`, 'new-message', message)
+  // Trigger Pusher event if configured
+  if (pusherServer) {
+    await pusherServer.trigger(`conversation-${id}`, 'new-message', message)
+  }
 
   return NextResponse.json(message)
 }

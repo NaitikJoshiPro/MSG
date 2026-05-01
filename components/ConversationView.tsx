@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { pusherClient } from '@/lib/pusher-client'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 
@@ -24,36 +23,63 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastMsgIdRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    fetch(`/api/conversations/${conversationId}/messages`)
-      .then((r) => r.json())
-      .then(setMessages)
-      .catch(console.error)
+  const fetchMessages = useCallback(async () => {
+    const res = await fetch(`/api/conversations/${conversationId}/messages`)
+    if (!res.ok) return
+    const data: Message[] = await res.json()
+    setMessages(data)
+    if (data.length) lastMsgIdRef.current = data[data.length - 1].id
   }, [conversationId])
 
   useEffect(() => {
-    const channel = pusherClient.subscribe(`conversation-${conversationId}`)
+    fetchMessages()
+  }, [fetchMessages])
 
-    channel.bind('new-message', (msg: Message) => {
-      setMessages((prev) => {
-        if (prev.find((m) => m.id === msg.id)) return prev
-        return [...prev, msg]
+  useEffect(() => {
+    const { pusherClient } = require('@/lib/pusher-client') as {
+      pusherClient: import('pusher-js') | null
+    }
+
+    if (pusherClient) {
+      const channel = pusherClient.subscribe(`conversation-${conversationId}`)
+
+      channel.bind('new-message', (msg: Message) => {
+        setMessages((prev) => {
+          if (prev.find((m) => m.id === msg.id)) return prev
+          return [...prev, msg]
+        })
+        lastMsgIdRef.current = msg.id
       })
-    })
 
-    channel.bind('typing', (data: { userId: string; isTyping: boolean }) => {
-      if (data.userId !== currentUserId) {
-        setIsTyping(data.isTyping)
-        if (data.isTyping) {
-          if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
-          typingTimerRef.current = setTimeout(() => setIsTyping(false), 3000)
+      channel.bind('typing', (data: { userId: string; isTyping: boolean }) => {
+        if (data.userId !== currentUserId) {
+          setIsTyping(data.isTyping)
+          if (data.isTyping) {
+            if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+            typingTimerRef.current = setTimeout(() => setIsTyping(false), 3000)
+          }
         }
-      }
-    })
+      })
 
-    return () => {
-      pusherClient.unsubscribe(`conversation-${conversationId}`)
+      return () => {
+        pusherClient.unsubscribe(`conversation-${conversationId}`)
+      }
+    } else {
+      // Polling fallback when Pusher is not configured
+      const interval = setInterval(async () => {
+        const res = await fetch(`/api/conversations/${conversationId}/messages`)
+        if (!res.ok) return
+        const data: Message[] = await res.json()
+        setMessages((prev) => {
+          const lastId = prev.length ? prev[prev.length - 1].id : null
+          const incoming = data[data.length - 1]?.id
+          if (incoming && incoming !== lastId) return data
+          return prev
+        })
+      }, 2000)
+      return () => clearInterval(interval)
     }
   }, [conversationId, currentUserId])
 
@@ -70,19 +96,18 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
   )
 
   const sendTyping = useCallback(
-    async (isTyping: boolean) => {
+    async (typing: boolean) => {
       await fetch(`/api/conversations/${conversationId}/typing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isTyping }),
-      })
+        body: JSON.stringify({ isTyping: typing }),
+      }).catch(() => {})
     },
     [conversationId]
   )
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-6 py-4 border-b border-[#111] flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center">
@@ -94,7 +119,6 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
         </div>
       </div>
 
-      {/* Messages */}
       <MessageList
         messages={messages}
         currentUserId={currentUserId}
@@ -102,7 +126,6 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
         otherUserName={otherUser.name}
       />
 
-      {/* Input */}
       <MessageInput onSend={sendMessage} onTyping={sendTyping} />
     </div>
   )
