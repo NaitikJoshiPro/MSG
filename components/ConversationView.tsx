@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { pusherClient } from '@/lib/pusher-client'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 
@@ -23,14 +24,12 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastMsgIdRef = useRef<string | null>(null)
 
   const fetchMessages = useCallback(async () => {
     const res = await fetch(`/api/conversations/${conversationId}/messages`)
     if (!res.ok) return
     const data: Message[] = await res.json()
     setMessages(data)
-    if (data.length) lastMsgIdRef.current = data[data.length - 1].id
   }, [conversationId])
 
   useEffect(() => {
@@ -38,10 +37,6 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
   }, [fetchMessages])
 
   useEffect(() => {
-    const { pusherClient } = require('@/lib/pusher-client') as {
-      pusherClient: import('pusher-js') | null
-    }
-
     if (pusherClient) {
       const channel = pusherClient.subscribe(`conversation-${conversationId}`)
 
@@ -50,7 +45,6 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
           if (prev.find((m) => m.id === msg.id)) return prev
           return [...prev, msg]
         })
-        lastMsgIdRef.current = msg.id
       })
 
       channel.bind('typing', (data: { userId: string; isTyping: boolean }) => {
@@ -74,7 +68,7 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
         const data: Message[] = await res.json()
         setMessages((prev) => {
           const lastId = prev.length ? prev[prev.length - 1].id : null
-          const incoming = data[data.length - 1]?.id
+          const incoming = data.length ? data[data.length - 1].id : null
           if (incoming && incoming !== lastId) return data
           return prev
         })
