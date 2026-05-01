@@ -37,8 +37,9 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
   }, [fetchMessages])
 
   useEffect(() => {
-    if (pusherClient) {
-      const channel = pusherClient.subscribe(`conversation-${conversationId}`)
+    const client = pusherClient
+    if (client) {
+      const channel = client.subscribe(`conversation-${conversationId}`)
 
       channel.bind('new-message', (msg: Message) => {
         setMessages((prev) => {
@@ -58,7 +59,7 @@ export function ConversationView({ conversationId, currentUserId, otherUser }: P
       })
 
       return () => {
-        pusherClient.unsubscribe(`conversation-${conversationId}`)
+        client.unsubscribe(`conversation-${conversationId}`)
       }
     } else {
       // Polling fallback when Pusher is not configured
